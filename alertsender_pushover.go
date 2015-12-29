@@ -2,14 +2,14 @@ package logalert
 
 import "github.com/thorduri/pushover"
 
-// alertSender pushover -
-type alertSenderPushover struct {
+// AlertSenderPushover - pushover
+type AlertSenderPushover struct {
 	UserToken string
 	AppToken  string
 }
 
 // Send an alert via pushover
-func (a *alertSenderPushover) Send(msg string) error {
+func (a AlertSenderPushover) Send(msg string) error {
 	po, err := pushover.NewPushover(a.AppToken, a.UserToken)
 	if err != nil {
 		return err
