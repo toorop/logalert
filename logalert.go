@@ -4,29 +4,48 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
+	"time"
 )
 
 // Logalert logger
 type Logalert struct {
-	infoLogger   *log.Logger
-	errLogger    *log.Logger
-	alertSenders []AlertSender
+	*sync.Mutex
+	infoLogger    *log.Logger
+	errLogger     *log.Logger
+	alertSenders  []AlertSender
+	gracePeriod   time.Duration
+	lastAlertSent time.Time
 }
 
 // NewLogalert init a new logalert
-func NewLogalert(infoWriter, errWritter io.Writer, alertSenders []AlertSender) *Logalert {
+func NewLogalert(infoWriter, errWritter io.Writer, alertSenders []AlertSender, gracePeriod time.Duration) *Logalert {
 	logger := Logalert{
-		infoLogger:   log.New(infoWriter, "INFO: ", log.Ldate|log.Ltime|log.Lshortfile),
-		errLogger:    log.New(errWritter, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
-		alertSenders: alertSenders,
+		&sync.Mutex{},
+		log.New(infoWriter, "INFO: ", log.Ldate|log.Ltime),
+		log.New(errWritter, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
+		alertSenders,
+		gracePeriod,
 	}
 	return &logger
 }
 
+// SetAlertSenders set alert senders
+func (l *Logalert) SetAlertSenders(as []AlertSender) {
+	l.Lock()
+	defer l.Unlock()
+	l.alertSenders = as
+}
+
 // SendAlert send alerts via alertSenders
 func (l *Logalert) SendAlert(v ...interface{}) {
-	for _, sender := range l.alertSenders {
-		sender.Send(fmt.Sprint(v...))
+	l.Lock()
+	defer l.Unlock()
+	if time.Since(l.lastAlertSent) > l.gracePeriod {
+		for _, sender := range l.alertSenders {
+			sender.Send(fmt.Sprint(v...))
+		}
+		l.lastAlertSent = time.Now()
 	}
 }
 
