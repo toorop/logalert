@@ -19,13 +19,14 @@ type Logalert struct {
 }
 
 // NewLogalert init a new logalert
-func NewLogalert(infoWriter, errWritter io.Writer, alertSenders []AlertSender, gracePeriod time.Duration) *Logalert {
+func NewLogalert(infoWriter, errWritter io.Writer, alertSenders []AlertSender, gracePeriodSeconds int) *Logalert {
 	logger := Logalert{
 		&sync.Mutex{},
 		log.New(infoWriter, "INFO: ", log.Ldate|log.Ltime),
 		log.New(errWritter, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
 		alertSenders,
-		gracePeriod,
+		time.Duration(gracePeriodSeconds) * time.Second,
+		time.Unix(0, 0),
 	}
 	return &logger
 }
