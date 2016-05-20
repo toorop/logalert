@@ -18,12 +18,12 @@ type Logger struct {
 	lastAlertSent time.Time
 }
 
-// NewLogalert init a new logalert
+// NewLogger init a new logalert
 func NewLogger(infoWriter, errWritter io.Writer, alertSenders []AlertSender, gracePeriodSeconds int) *Logger {
 	logger := Logger{
 		&sync.Mutex{},
 		log.New(infoWriter, "INFO: ", log.Ldate|log.Ltime),
-		log.New(errWritter, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile),
+		log.New(errWritter, "ERROR: ", log.Ldate|log.Ltime),
 		alertSenders,
 		time.Duration(gracePeriodSeconds) * time.Second,
 		time.Unix(0, 0),
@@ -44,7 +44,7 @@ func (l *Logger) SendAlert(v ...interface{}) {
 	defer l.Unlock()
 	if time.Since(l.lastAlertSent) > l.gracePeriod {
 		for _, sender := range l.alertSenders {
-			sender.Send(fmt.Sprint(v...))
+			sender.Send(fmt.Sprint(formatMsg(v...)))
 		}
 		l.lastAlertSent = time.Now()
 	}
@@ -52,7 +52,7 @@ func (l *Logger) SendAlert(v ...interface{}) {
 
 // Info log at INFO level
 func (l *Logger) Info(v ...interface{}) {
-	l.infoLogger.Println(v...)
+	l.infoLogger.Println(formatMsg(v...))
 	return
 }
 
@@ -65,7 +65,7 @@ func (l *Logger) InfoAlert(v ...interface{}) {
 
 // Error write error log
 func (l *Logger) Error(v ...interface{}) {
-	l.errLogger.Println(v...)
+	l.errLogger.Println(formatMsg(v...))
 	return
 }
 
@@ -74,4 +74,13 @@ func (l *Logger) ErrorAlert(v ...interface{}) {
 	l.Error(v...)
 	l.SendAlert(v...)
 	return
+}
+
+// formatErrorMsg format error output
+func formatMsg(v ...interface{}) string {
+	m := ""
+	for _, part := range v {
+		m = m + fmt.Sprintf("%v", part)
+	}
+	return m
 }
