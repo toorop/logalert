@@ -1,6 +1,6 @@
 package logalert
 
-import "github.com/thorduri/pushover"
+import "github.com/toorop/pushover"
 
 // AlertSenderPushover - pushover
 type AlertSenderPushover struct {
